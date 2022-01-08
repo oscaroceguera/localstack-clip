@@ -202,3 +202,12 @@ Copy the URL in the Location property of the response and paste it into your bro
 Then, if you look at .localstack/data/recorded_api_calls.json again, you'll see it filled up with the binary data of the image:
 
 ![seven](images/fake_aws_s3_07.png)
+
+**EXERCISE**
+
+Add a Endpont to upload files (images), install:
+
+- express
+- express-fileupload
+
+![eight](images/fake_aws_s3_08.png)

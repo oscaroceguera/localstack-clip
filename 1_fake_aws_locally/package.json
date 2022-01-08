@@ -1,0 +1,16 @@
+{
+  "name": "1_fake_aws_locally",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1053.0",
+    "dotenv": "^10.0.0"
+  }
+}

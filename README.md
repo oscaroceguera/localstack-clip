@@ -16,6 +16,7 @@ Stack:
 
 - Nodejs
 - Express
+- [brew if is necesary](https://brew.sh/)
 - Localstack (AWS suit)
 - Docker & Docker Compose
 - Jest & SuperTest for testing
@@ -88,7 +89,7 @@ Run in terminal:
 
 `docker-compose up`
 
-To make sure it's working, we can visit http://localhost:80855 to see localstack's web UI:
+To make sure it's working, we can visit http://localhost:8055 to see localstack's web UI:
 
 ![first](images/fake_aws_s3_01.png)
 
@@ -205,7 +206,7 @@ Then, if you look at .localstack/data/recorded_api_calls.json again, you'll see 
 
 **EXERCISE**
 
-Add a Endpont to upload files (images), install:
+Add a Endpoint to upload files (images) and other that list all images, install:
 
 - express
 - express-fileupload

@@ -39,4 +39,22 @@ const uploadFile = async (data, name) =>
     );
   });
 
-module.exports = uploadFile;
+const getFiles = async () => {
+  return new Promise((resolve) => {
+    s3client.listObjects(
+      {
+        Bucket: bucketName,
+        MaxKeys: 50,
+      },
+      (err, response) => {
+        if (err) throw err;
+        resolve(response);
+      }
+    );
+  });
+};
+
+module.exports = {
+  uploadFile,
+  getFiles,
+};

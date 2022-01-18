@@ -229,8 +229,26 @@ Add a Endpoint to upload files (images) and other that list all images, install:
   - src/tests/integration.test.js
   - src/swagger.json
   - Dockerfile
+  - .dockerignore
+  - config.js
   - docker-compose.yml
   - jest.config.js
+
+**Configs `src/config.js`**
+
+```javascript
+const required = ["NODE_ENV"];
+required.forEach((param) => {
+  if (!process.env[param]) {
+    throw new Error(`Environment parameter ${param} is missing`);
+  }
+});
+const config = {
+  env: process.env["NODE_ENV"],
+};
+
+module.exports = config;
+```
 
 **Setup routes `src/routes`**
 
@@ -596,5 +614,543 @@ describe("Integration Test for the API", () => {
 });
 ```
 
+**Write `jest.config.js`**
+
+```javascript
+// For a detailed explanation regarding each configuration property, visit:
+// https://jestjs.io/docs/en/configuration.html
+
+module.exports = {
+  coverageDirectory: "coverage",
+  testEnvironment: "node",
+};
+```
+
 **Run `npm test`**
 ![dynamo02](images/node_dynamodb_02.png)
+
+**Setup**
+
+Create a folder **setup** and add the next files:
+
+- [Create-players.json](https://gist.github.com/oscaroceguera/e35f94112069e975856bd4b70b82e576)
+- [players-v1.json](https://gist.github.com/oscaroceguera/ca9ddcc352a5d77dd01b557c284fabab)
+- [players-v2.json](https://gist.github.com/oscaroceguera/b4eb6713b1ec3c15c9b9f9a75c7f7f09)
+- [players-v3.json](https://gist.github.com/oscaroceguera/e110cb61cd0114434180fa2d5927e151s)
+- [setup.sh](https://gist.github.com/oscaroceguera/173b68b299ab9feafa2013fe4a969061)
+
+**Dockerizing node.js web app `Dockerfile`**
+
+```
+FROM node:13-alpine
+WORKDIR /app
+COPY . .
+RUN ["npm", "install"]
+EXPOSE 3000
+ENTRYPOINT ["npm", "start"]
+```
+
+**Config your `docker-compose.yml` file**
+
+```yml
+version: "3.6"
+x-common-variables: &common-variables
+  NODE_ENV: local
+  AWS_ACCESS_KEY_ID: anykey
+  AWS_SECRET_ACCESS_KEY: anysecret
+  AWS_REGION: us-east-2
+services:
+  local:
+    build:
+      context: .
+    image: soccer-player-api
+    volumes:
+      - ./src:/app/src
+    container_name: soccer-player-api_local
+    environment: *common-variables
+    ports:
+      - "3000:3000"
+      - "9229:9229"
+    tty: true
+    entrypoint: ["npm", "run", "local"]
+  test:
+    build:
+      context: .
+    image: soccer-player-api
+    volumes:
+      - ./src:/app/src
+      - ./coverage/unit:/app/coverage
+    container_name: soccer-player-api_test
+    environment: *common-variables
+    tty: true
+    entrypoint: ["npm", "test"]
+  localstack:
+    image: localstack/localstack
+    container_name: soccer-player-api_localstack
+    environment:
+      SERVICES: dynamodb
+    ports:
+      - "4569:4569"
+  setup:
+    image: mesosphere/aws-cli
+    container_name: soccer-player-api_setup
+    volumes:
+      - ./setup:/setup
+    environment:
+      AWS_ACCESS_KEY_ID: anykey
+      AWS_SECRET_ACCESS_KEY: anysecret
+      AWS_DEFAULT_REGION: us-east-2
+    depends_on:
+      - localstack
+    entrypoint: [""]
+    command: ["/setup/setup.sh"]
+networks:
+  default:
+    name: soccer-player-api
+```
+
+_NOTE: use `chmod +x the_file_name` if you need permission for setup.sh file_
+
+**Run `docker-compose up localstack setup`**
+![dynamo04](images/node_dynamodb_04.png)
+
+**Run `docker-compose up local`**
+![dynamo05](images/node_dynamodb_05.png)
+
+**Run `docker-compose up test`**
+![dynamo06](images/node_dynamodb_06.png)
+
+### Build our EndPoints
+
+- Add new files:
+  - src/repositories/dynamodb.repository.js
+  - src/daos/players.dao.js
+  - src/models/players.model.js
+  - src/controllers/players.controller.js
+
+**Connect to DynamoDB `src/repositories/dynamodb.repository.js`**
+
+```javascript
+const AWS = require("aws-sdk");
+
+const dynamodb = new AWS.DynamoDB.DocumentClient({
+  service: new AWS.DynamoDB({ apiVersion: "2012-08-10" }),
+});
+
+const manageRequest = (method, params) => {
+  return new Promise((resolve, reject) => {
+    dynamodb[method](params, (error, response) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(response);
+      }
+    });
+  });
+};
+
+class DynamodbRepository {
+  static get(params) {
+    return manageRequest("get", params);
+  }
+
+  static query(params) {
+    return manageRequest("query", params);
+  }
+
+  static update(params) {
+    return manageRequest("update", params);
+  }
+
+  static put(params) {
+    return manageRequest("put", params);
+  }
+
+  static delete(params) {
+    return manageRequest("delete", params);
+  }
+}
+
+module.exports = DynamodbRepository;
+```
+
+**Create a DAO (Data Access Object) `src/daos/players.dao.js`**
+
+```javascript
+const dynamodbRepository = require("../repositories/dynamodb.repository");
+
+class PlayersDao {
+  static async getPlayers(limit = 500) {
+    const params = {
+      TableName: "players",
+      KeyConditionExpression: "mytype = :mytype",
+      ExpressionAttributeValues: {
+        ":mytype": "player",
+      },
+      ProjectionExpression: "playerId, fullname, myposition",
+      ScanIndexForward: true,
+      Limit: limit,
+    };
+    const result = await dynamodbRepository.query(params);
+
+    return result.Items;
+  }
+
+  static async getPlayer(playerId) {
+    const params = {
+      TableName: "players",
+      IndexName: "playerId-index",
+      KeyConditionExpression: "playerId = :playerId",
+      ExpressionAttributeValues: {
+        ":playerId": playerId,
+      },
+      ProjectionExpression: "playerId, fullname, myposition",
+      Limit: 1,
+    };
+    const result = await dynamodbRepository.query(params);
+
+    return result.Items;
+  }
+
+  static async insertPlayer(item) {
+    const params = {
+      TableName: "players",
+      Item: item,
+      ReturnValues: "NONE",
+    };
+
+    return dynamodbRepository.put(params);
+  }
+
+  static async updatePlayer(playerId, myposition, fullname) {
+    const params = {
+      TableName: "players",
+      Key: {
+        mytype: "player",
+        playerId: playerId.toString(),
+      },
+      UpdateExpression: `set fullname = :fullname, myposition = :myposition`,
+      ExpressionAttributeValues: {
+        ":myposition": myposition,
+        ":fullname": fullname,
+      },
+      ReturnValues: "ALL_NEW",
+    };
+
+    return dynamodbRepository.update(params);
+  }
+
+  static async deletePlayer(playerId) {
+    const params = {
+      TableName: "players",
+      Key: {
+        mytype: "player",
+        playerId: playerId.toString(),
+      },
+    };
+
+    return dynamodbRepository.delete(params);
+  }
+
+  static async getPlayersByPosition(myposition, limit = 25) {
+    const params = {
+      TableName: "players",
+      IndexName: "myposition-playerId-index",
+      KeyConditionExpression: "myposition = :myposition",
+      ExpressionAttributeValues: {
+        ":myposition": myposition,
+      },
+      ProjectionExpression: "fullname, myposition",
+      ScanIndexForward: false,
+      Limit: limit,
+    };
+    const result = await dynamodbRepository.query(params);
+
+    return result.Items;
+  }
+}
+
+module.exports = PlayersDao;
+```
+
+**Create model `src/models/players.model.js`**
+
+```javascript
+const playersDao = require("../daos/players.dao");
+
+const shuffle = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+};
+
+class PlayersModel {
+  static getPlayers() {
+    return playersDao.getPlayers();
+  }
+
+  static getPlayer(playerId) {
+    return playersDao.getPlayer(playerId);
+  }
+
+  static async insertPlayer(playerId, mytype, myposition, fullname) {
+    const item = { playerId, mytype, myposition, fullname };
+
+    return playersDao.insertPlayer(item);
+  }
+
+  static async updatePlayer(playerId, myposition, fullname) {
+    return playersDao.updatePlayer(playerId, myposition, fullname);
+  }
+
+  static deletePlayer(playerId) {
+    return playersDao.deletePlayer(playerId);
+  }
+
+  static async getDreamTeam() {
+    const goalkeeper = await this.getPlayersByPosition("goalkeeper", 1);
+    const defenders = await this.getPlayersByPosition("defender", 4);
+    const midfielders = await this.getPlayersByPosition("midfielder", 3);
+    const forwards = await this.getPlayersByPosition("forward", 3);
+
+    return [goalkeeper, defenders, midfielders, forwards];
+  }
+
+  static async getPlayersByPosition(position, quantity) {
+    const p = await playersDao.getPlayersByPosition(position);
+    console.log(p.length);
+    shuffle(p);
+    const players = [];
+    for (var i = 0; i < quantity; i++) {
+      players.push(p[i]);
+    }
+
+    return players;
+  }
+}
+
+module.exports = PlayersModel;
+```
+
+**Create our controllers `src/controllers/players.controllers.js`**
+
+```javascript
+const playersModel = require("../models/players.model");
+const xid = require("xid-js");
+
+const generateUuid = () => {
+  return xid.next();
+};
+
+const isValidString = (value) => {
+  return typeof value === "string" && value.trim().length > 0;
+};
+
+class PlayersController {
+  static async getPlayers(req, res) {
+    const callId = generateUuid();
+    console.log("Call %s %s id: %s", req.method, req.url, callId);
+    try {
+      const result = await playersModel.getPlayers();
+      console.log("Call id: %s response: %s", callId, JSON.stringify(result));
+      console.log(result.length);
+      res.status(200).send(result);
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+
+  static async getPlayer(req, res) {
+    const playerId = req.params.playerId;
+    const callId = generateUuid();
+    console.log("Call %s %s id: %s", req.method, req.url, callId);
+    try {
+      const result = await playersModel.getPlayer(playerId);
+      console.log("Call id: %s response: %s", callId, JSON.stringify(result));
+      if (Array.isArray(result) && result.length) {
+        res.status(200).send(result);
+      } else {
+        res.status(404).send({ error: "Player Not Found." });
+      }
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+
+  static async insertPlayer(req, res) {
+    const { playerId, myposition, fullname } = req.body;
+    const callId = generateUuid();
+    const mytype = "player";
+    console.log(
+      "Call %s %s id: %s body: %s",
+      req.method,
+      req.url,
+      callId,
+      JSON.stringify(req.body)
+    );
+    if (
+      !isValidString(playerId) ||
+      !isValidString(myposition) ||
+      !isValidString(fullname)
+    ) {
+      console.log(
+        "Call id: %s error:%s",
+        callId,
+        JSON.stringify("Missing info.")
+      );
+      return res.status(400).send({ error: "Player info is incomplete." });
+    }
+    try {
+      await playersModel.insertPlayer(playerId, mytype, myposition, fullname);
+      console.log("Call id: %s response: %s", callId, "Player created.");
+      res.status(201).send({ message: "Player created." });
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+
+  static async updatePlayer(req, res) {
+    const playerId = req.params.playerId;
+    const { myposition, fullname } = req.body;
+    const callId = generateUuid();
+    console.log(
+      "Call %s %s id: %s body: %s params: %s",
+      req.method,
+      req.url,
+      callId,
+      JSON.stringify(req.body),
+      JSON.stringify(req.params)
+    );
+    if (
+      !isValidString(playerId) ||
+      !isValidString(myposition) ||
+      !isValidString(fullname)
+    ) {
+      console.log(
+        "call id: %s error:%s",
+        callId,
+        JSON.stringify("Missing info.")
+      );
+      return res.status(400).send({ error: "Player info is incomplete." });
+    }
+    try {
+      await playersModel.updatePlayer(playerId, myposition, fullname);
+      console.log("call id:%s result:%s ", callId, "Player updated.");
+      res.status(200).send({ message: "Player updated." });
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+
+  static async deletePlayer(req, res) {
+    const playerId = req.params.playerId;
+    const callId = generateUuid();
+    console.log("Call %s %s id: %s", req.method, req.url, callId);
+    try {
+      const result = await playersModel.deletePlayer(playerId);
+      console.log("Call id: %s response: %s", callId, JSON.stringify(result));
+      res.status(204).send(result);
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+
+  static async getDreamTeam(req, res) {
+    const callId = generateUuid();
+    console.log("Call %s %s id: %s", req.method, req.url, callId);
+    try {
+      const team = await playersModel.getDreamTeam();
+      console.log("Call id: %s response: %s", callId, JSON.stringify(team));
+      console.log(team);
+      res.status(200).send(team);
+    } catch (error) {
+      console.log("Call id: %s error: %s", callId, error);
+      res.status(500).send({ error: "Internal Server Error." });
+    }
+  }
+}
+
+module.exports = PlayersController;
+```
+
+**Add controllers within `src/router.js`**
+
+```javascript
+const express = require("express");
+const router = express.Router();
+const version = "v1";
+const playersController = require("./controllers/players.controller");
+
+router.get(`/${version}/players`, playersController.getPlayers);
+router.get(`/${version}/players/dream-team`, playersController.getDreamTeam);
+router.get(`/${version}/players/:playerId`, playersController.getPlayer);
+router.post(`/${version}/players`, playersController.insertPlayer);
+router.patch(`/${version}/players/:playerId`, playersController.updatePlayer);
+router.delete(`/${version}/players/:playerId`, playersController.deletePlayer);
+
+module.exports = router;
+```
+
+**Add routes and aws connection `src/app.js`**
+
+```javascript
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const AWS = require("aws-sdk");
+const config = require("./config");
+if (config.env === "local") {
+  AWS.config.dynamodb = { endpoint: "http://localstack:4569" };
+}
+const router = require("./router");
+const swaggerUI = require("swagger-ui-express");
+const swaggerDocument = require("./swagger.json");
+const app = express();
+
+app.use(cors());
+
+app.get("/", (req, res) => {
+  const msg = {
+    message: "Welcome to Soccer Player API!",
+  };
+  res.status(200).send(msg);
+});
+
+app.get("/status", (req, res) => {
+  const status = {
+    status: "ok",
+    api: "soccer-player-api",
+    time: Date.now(),
+  };
+  res.status(200).send(status);
+});
+
+router.use("/docs", swaggerUI.serve, swaggerUI.setup(swaggerDocument));
+
+app.use(bodyParser.json());
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+  })
+);
+
+app.use((req, res, next) => {
+  res.removeHeader("X-Powered-By");
+  next();
+});
+
+app.use("/", router);
+
+module.exports = app;
+```
+
+**Run localstack, dynamoDB and local API**
+
+- `docker-compose up localstack setup`
+- `docker-compose up local`

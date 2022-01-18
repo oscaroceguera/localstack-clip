@@ -217,6 +217,8 @@ Add a Endpoint to upload files (images) and other that list all images, install:
 
 ## Second Goal (Localstack/Nodejs/DynamoDB/Swagger/Jest)
 
+Download [NoSQL Workbench](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/workbench.settingup.html)
+
 - Create a new directory for you project
 - Within it a new nodejs project `npm init -y`.
 - install dependecies with npm:
@@ -1154,3 +1156,36 @@ module.exports = app;
 
 - `docker-compose up localstack setup`
 - `docker-compose up local`
+
+**Try:**
+
+- Get All Players: `GET http://localhost:3000/v1/players`
+- Create Player: `POST http://localhost:3000/v1/players`
+- Get One Player: `GET http://localhost:3000/v1/players/`
+- Update Player: `PATCH http://localhost:3000/v1/players/`
+- Delete Player: `DELETE http://localhost:3000/v1/players/`
+- Dream Team: `GET http://localhost:3000/v1/players/dream-team`
+
+**Update documentation**
+
+Use the gist for that [link](https://gist.github.com/oscaroceguera/f6fd15d6025ed382ad32f32dd9bbf506)
+
+**Consulting DynamoDB tables**
+
+Download NoSQL workbench:
+
+- Launch Amazon DynamoDB
+- Operation builder > + add connection
+- Select DynamoDB local and add port
+- Open the conection
+- Consulting the table
+
+![dynamo11](images/node_dynamodb_11.png)
+![dynamo07](images/node_dynamodb_07.png)
+![dynamo08](images/node_dynamodb_08.png)
+![dynamo09](images/node_dynamodb_09.png)
+![dynamo10](images/node_dynamodb_10.png)
+
+**EXERCISE**
+
+Create a CRUD for Movies.

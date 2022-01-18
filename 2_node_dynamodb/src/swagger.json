@@ -1,239 +1,151 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Soccer Players API",
-    "description": "Tiny RESTful API using Node.js: allows you to manage soccer players.",
-    "contact": {
-      "name": "Mauro Bonfietti",
-      "url": "https://github.com/maurobonfietti"
-    },
-    "version": "1.0"
-  },
-  "paths": {
-    "/": {
-      "get": {
-        "tags": ["Info"],
-        "summary": "Get help",
-        "description": "Get help about this API.",
-        "operationId": "Gethelp",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "headers": {
-              "X-Powered-By": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "Express"
-                  }
-                }
-              },
-              "Access-Control-Allow-Origin": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "*"
-                  }
-                }
-              },
-              "Content-Length": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "43"
-                  }
-                }
-              },
-              "ETag": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "W/\"2b-h6BMmxGhWkCo5dA5bJgq/pDo3sQ\""
-                  }
-                }
-              },
-              "Date": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "Mon, 23 Dec 2019 21:03:20 GMT"
-                  }
-                }
-              },
-              "Connection": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "keep-alive"
-                  }
-                }
-              }
-            },
-            "content": {
-              "application/json; charset=utf-8": {
-                "schema": {
-                  "$ref": "#/components/schemas/Gethelp"
-                },
-                "example": {
-                  "message": "Welcome to Soccer Player API!"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/status": {
-      "get": {
-        "tags": ["Info"],
-        "summary": "Health check",
-        "description": "Get status of this API.",
-        "operationId": "Healthcheck",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "headers": {
-              "X-Powered-By": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "Express"
-                  }
-                }
-              },
-              "Access-Control-Allow-Origin": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "*"
-                  }
-                }
-              },
-              "Content-Length": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "62"
-                  }
-                }
-              },
-              "ETag": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "W/\"3e-r8UILbmoe9Rk/g5iPSk00uuUUuk\""
-                  }
-                }
-              },
-              "Date": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "Mon, 23 Dec 2019 21:03:27 GMT"
-                  }
-                }
-              },
-              "Connection": {
-                "content": {
-                  "text/plain": {
-                    "schema": {
-                      "type": "string"
-                    },
-                    "example": "keep-alive"
-                  }
-                }
-              }
-            },
-            "content": {
-              "application/json; charset=utf-8": {
-                "schema": {
-                  "$ref": "#/components/schemas/Healthcheck"
-                },
-                "example": {
-                  "status": "ok",
-                  "api": "soccer-player-api",
-                  "time": 1577135007891
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
+    "version": "2.0.0",
+    "title": "API Rest Dynamodb example",
+    "description": "Api Rest example to show the use of dynamodb, and docker-compose",
+    "license": {
+      "name": "Juan Ignacio Paz",
+      "url": "http://www.jipnet.com.ar"
     }
   },
-  "components": {
-    "schemas": {
-      "Gethelp": {
-        "title": "Gethelp",
-        "required": ["message"],
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        },
-        "example": {
-          "message": "Welcome to Soccer Player API!"
-        }
-      },
-      "Healthcheck": {
-        "title": "Healthcheck",
-        "required": ["status", "api", "time"],
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string"
-          },
-          "api": {
-            "type": "string"
-          },
-          "time": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "example": {
-          "status": "ok",
-          "api": "soccer-player-api",
-          "time": 1577135007891
-        }
-      }
-    }
-  },
+  "host": "localhost:3000",
+  "basePath": "/",
+  "schemes": ["http"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
   "tags": [
     {
-      "name": "Info",
-      "description": "Endpoints to get info about the API."
-    },
-    {
-      "name": "Players",
-      "description": "Endpoints to get and manage soccer players."
+      "name": "messages",
+      "description": "Messages description"
     }
-  ]
+  ],
+  "paths": {
+    "/v1/messages/sent": {
+      "get": {
+        "description": "search messages sent",
+        "summary": "search summary",
+        "operationId": "get sent",
+        "tags": ["messages"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sender",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Userid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success!"
+          }
+        }
+      }
+    },
+    "/v1/messages/received": {
+      "get": {
+        "description": "search messages received",
+        "summary": "search summary",
+        "operationId": "get received",
+        "tags": ["messages"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "receiver",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Userid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success!"
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "post": {
+        "tags": ["messages"],
+        "description": "insert message",
+        "summary": "insert message",
+        "requestBody": {
+          "description": "message status",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sender": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "receiver": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "mid": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "msg": {
+                    "type": "string",
+                    "required": true
+                  },
+                  "ts": {
+                    "type": "integer",
+                    "required": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success!"
+          }
+        }
+      },
+      "patch": {
+        "description": "update message",
+        "summary": "update msg",
+        "tags": ["messages"],
+        "requestBody": {
+          "description": "msg",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sender": {
+                    "type": "string"
+                  },
+                  "mid": {
+                    "type": "string"
+                  },
+                  "msg": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success!"
+          }
+        }
+      }
+    }
+  },
+  "components": null
 }
